@@ -1,0 +1,158 @@
+---
+title: "Working with AWS Resources from R"
+author: "Sean Davis"
+date: "7/26/2017"
+output: html_document
+---
+
+# Introduction
+
+To follow along with this little tutorial, open a *FREE* account with AWS:
+
+https://aws.amazon.com/free/
+
+If you have an Amazon account, you can use that username and password to login. If not, simply create a new account. After providing some some basic information and completing the account process, look for a search bar like this one.
+
+![service-search](images/service-search.png)
+
+Type “IAM” into the search bar and click on the first result, Amazon’s [Identity and Access Management](https://aws.amazon.com/iam/) system. On the left side of the IAM dashboard you should see a menu item called “Users”.
+
+![iam-dashboard](images/iam-dashboard.png)
+
+Click on “Users” and then you should see yet another dashboard which will list the users you create. If you’re new to AWS then you shouldn’t see any user names listed! Click on the blue “Add user” button to create a new user.
+
+![add-user](images/add-user.png)
+
+In the user name field just enter a name that you can easily remember, and make sure to check the check box to give this user programmatic access.
+
+![add-jeff](images/add-jeff.png)
+
+After you’ve checked the box, you can click Next: Permissions, then you should see the screen below.
+
+![permissions](images/permissions.png)
+
+On this page you first need to select how you’re going to assign AWS permissions to this user. Click *Attach existing policies directly* so that you can specify which services you’re going to use. In this case, we are going to be using AWS s3 and EC2. Starting with the s3 component, type s3 into the search box. 
+
+![s3-access](images/s3-access.png)
+
+Amazon S3 is just a big hard drive that you can access over the internet (like a programmable Dropbox). Check the box next to AmazonS3FullAccess so that you can create and destroy files in Amazon S3. Go through a similar process for the EC2 service. If you wanted to use a different web service, you could search for the name of that service here to provide even more access to this user. You can always return to the permissions page to add more services later if needed.
+
+When you’re finished, click Next: Review. On the following screen click Create user in order to get your credentials. You should now see this screen.
+
+![secret](images/secret.png)
+
+In order to use AWS in R you need two strings. 
+
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+
+Click *show* under the secret access key heading in order to see the secret access key. Copy and paste each key into a file for safe keeping or download the `csv` file version. **Never share these keys since anyone with them can use your AWS account**. 
+
+> **After you leave this page you will never be able to retrieve the secret access key, so make sure you’ve recorded it.** 
+
+Don’t worry if you lose your secret access key though, you can just create a new user to get a new key. After you have both keys you can click the *Close* button. You’re now ready to start using AWS in R!
+
+Note: **Never share your AWS credentials, and never include them in ANY code. Instead, set environment variables or use an AWS credential file.**
+
+# Amazon s3
+
+Now let’s test out our big cloud hard drive with the `aws.s3` package which you can install with `install.packages("aws.s3")`. To use the package you’ll need to set up three environmental variables like I have below by specifying the `access key ID`, and the `secret access key` which we just set up, plus the *AWS region* which specifies the Amazon server farm geographically closest to you (usually). You can get a list of all regions for all services [here](http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region), and you click here to see which S3 regions are available.
+
+
+```{r s3setup}
+library(aws.s3)
+```
+
+```{r environ,eval=FALSE}
+# Set up your keys and your region here.
+# Note that you should not do this, but instead
+# included this code in a .Rprofile file, a .Renviron 
+# file, or an AWS config file (best option).
+Sys.setenv("AWS_ACCESS_KEY_ID" = "EA6TDV7ASDE9TL2WI6RJ",
+           "AWS_SECRET_ACCESS_KEY" = "OSnwITbMzcAwvHfYDEmk10khb3g82j04Wj8Va4AA",
+           "AWS_DEFAULT_REGION" = "us-east-2")
+```
+
+Now, let's kick the tires a bit by creating a CSV file that we can store to the cloud.
+
+```{r csvcreate}
+# mtcars is a built-in data set. Let's create a new CSV file that we can upload
+# to AWS S3.
+write.csv(mtcars, "mtcars.csv", row.names = FALSE)
+```
+
+Now let’s upload this file to S3. Amazon organizes S3 into *buckets*, which are like named cloud hard drives. You *must* use a name that nobody else has used before, so we’re going to introduce some randomness to come up with a unique bucket name. The put_bucket() function creates the bucket.
+
+
+```{r}
+# Coming up with unique bucket names is tricky, so we'll add a random string
+# to the name of this bucket.
+bucket_name <- paste(c("bioc2017-test-", sample(c(0:9, letters), 
+                                            size = 10, replace = TRUE)), collapse = "")
+
+# Now we can create the bucket.
+put_bucket(bucket_name,region='us-east-2')
+```
+
+```{r checkforbucket}
+bucket_exists(bucket_name)
+bucket_list_df()
+```
+
+Now we can put files in our bucket using put_object() by specifying which bucket we want to use:
+
+```{r}
+# Let's put our CSV file in the bucket.
+put_object("mtcars.csv", bucket = bucket_name)
+```
+
+We can then pull files out of the bucket given the name of the file with the save_object() function. Let’s make sure the file we pulled out of the bucket is the same as the file we put in!
+
+```{r}
+# We've put data in The Cloud! Now let's get it back on our computer:
+save_object("mtcars.csv", bucket = bucket_name, file = "mtcars_s3.csv")
+```
+
+```{r}
+# Are the files the same?
+mtcars_s3 <- read.csv("mtcars_s3.csv")
+all.equal(mtcars, mtcars_s3)
+# and delete the files
+unlink('mtcars_s3.csv')
+unlink('mtcars.csv')
+```
+
+Alternatively, we can read the object directly. The `get_object` function creates a `rawConnection` that we can read using many R input functions, such as `read.csv`.
+
+```{r}
+# Get the raw connection
+rc = get_object('mtcars.csv',bucket_name)
+# and convert to text.
+m = read.csv(text=rawToChar(rc))
+head(m)
+```
+
+Looks like it works! Now let’s delete the hard drive we created since we won’t need to use it anymore.
+
+```{r}
+# We're finished with this bucket, so let's delete it.
+delete_bucket(bucket_name)
+```
+
+*Always clean up after yourself during these experiments and you should not incur any charges.*
+
+# EC2: Elastic Compute Cloud
+
+Amazon Elastic Compute Cloud (Amazon EC2) is a service, accessible via a web-based API, that provides secure, resizable compute capacity in the cloud. It is designed to make web-scale cloud computing easier for developers and researchers. 
+
+- *Scale*: Services like EC2 enable you to increase or decrease capacity at will, driven by computational demand. You can commission one, hundreds, or even thousands of server instances simultaneously. You can also use "Auto Scaling" to maintain availability of your EC2 fleet and automatically scale your applications up and down depending on needs and to maximize performance and minimize cost. 
+- *Cost*: There are a [number of pricing options available](https://aws.amazon.com/ec2/pricing/spot-instances/), but for many bioinformatics workloads, using spot pricing may be acceptible and offers substantial discounts over "on demand" pricing. 
+- *Security*: Cloud systems can be incredibly secure, but the security model used by all cloud providers is a "shared" security model. Like all of the big cloud providers, AWS supplies data center and network architecture designed to meet the requirements of the most security-sensitive organizations. However, the security of the systems that we set up, as users of the EC2 service, is up to us to maintain. 
+
+AWS has a [Getting started with AWS ](https://aws.amazon.com/ec2/getting-started/) that you can use to create an instance using the web console, AWS SDK, or AWS command line tools.
+
+## Creating and monitoring an AWS instance
+
+This section details creating an AWS instance from within R. It assumes that you have your AWS key and secret available.
+
+
