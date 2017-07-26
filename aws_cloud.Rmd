@@ -3,8 +3,7 @@ title: "Working with AWS Resources from R"
 author: "Sean Davis"
 date: "7/26/2017"
 output: 
-  html_document:
-    theme: 
+  html_document
 ---
 
 # Introduction
