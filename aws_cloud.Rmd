@@ -2,7 +2,9 @@
 title: "Working with AWS Resources from R"
 author: "Sean Davis"
 date: "7/26/2017"
-output: html_document
+output: 
+  html_document:
+    theme: 
 ---
 
 # Introduction
@@ -130,6 +132,12 @@ rc = get_object('mtcars.csv',bucket_name)
 # and convert to text.
 m = read.csv(text=rawToChar(rc))
 head(m)
+```
+
+We can do a one-step approach if we like using the `s3read_using` function:
+
+```{r}
+m1 = s3read_using(read.csv,object='mtcars.csv',bucket=bucket_name)
 ```
 
 Looks like it works! Now let’s delete the hard drive we created since we won’t need to use it anymore.
