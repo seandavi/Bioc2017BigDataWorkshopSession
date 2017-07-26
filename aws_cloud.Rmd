@@ -3,7 +3,8 @@ title: "Working with AWS Resources from R"
 author: "Sean Davis"
 date: "7/26/2017"
 output: 
-  html_document
+  html_document:
+    keep_md: true
 ---
 
 # Introduction
@@ -139,7 +140,9 @@ We can do a one-step approach if we like using the `s3read_using` function:
 m1 = s3read_using(read.csv,object='mtcars.csv',bucket=bucket_name)
 ```
 
-Looks like it works! Now let’s delete the hard drive we created since we won’t need to use it anymore.
+Looks like it works! We can also directly save and load to s3 using `s3save` and `s3saveRDS` and accompanying load functions.
+
+Now let’s delete the hard drive we created since we won’t need to use it anymore.
 
 ```{r}
 # We're finished with this bucket, so let's delete it.
@@ -160,6 +163,78 @@ AWS has a [Getting started with AWS ](https://aws.amazon.com/ec2/getting-started
 
 ## Creating and monitoring an AWS instance
 
-This section details creating an AWS instance from within R. It assumes that you have your AWS key and secret available.
+This section details creating an AWS instance from within R. It assumes that you have your AWS key and secret available. We will be using the [preloaded AMI](http://bioconductor.org/help/bioconductor-cloud-ami/#preloaded_ami) from Bioconductor.
+
+The package that will help us with the details is the `aws.ec2` package.
+
+```{r installec2, eval=FALSE}
+install.packages('aws.ec2')
+```
+
+```{r}
+library(aws.ec2)
+```
+
+We will need a "keypair" to allow SSH access later.
+
+```{r create_keypair}
+keypair_name = 'bioc2017'
+create_keypair('bioc2017',path = 'bioc2017.pem')
+```
+
+Next, we need to create a network configuration that will allow us to interact with the rstudio server that will be running on the AMI. This is messy, but follow along.
+
+```{r}
+s <- describe_subnets()[[1]]
+g <- create_sgroup("biocAMI_group", "new security group", vpc = s)
+authorize_ingress(g, cidr = '0.0.0.0/0', port = 80, protocol = "tcp")
+authorize_ingress(g, cidr = '0.0.0.0/0', port = 22, protocol = "tcp")
+```
+
+```{r}
+imageid = 'ami-a4697eb2'
+# Launch the instance using appropriate settings
+i <- run_instances(image = imageid, 
+                   type = "t2.micro", # <- you might want to change this
+                   subnet = s, 
+                   sgroup = g)
+```
+
+Our AWS EC2 image is turning on. We can look into lots of details of the image, including getting the DNS name for connecting to the instance via RStudio server.
+
+```{r results='hide'}
+# RStudio Server will be available at the "publicIp" address returned in `i`
+str(describe_instances(i))
+dnsName = describe_instances(i)[[1]]$instancesSet[[1]]$dnsName
+```
+
+After a few minutes, we should be able to browse to the url with username `ubuntu` and password `bioc`.
+
+```{r eval=FALSE}
+browseURL(paste0('http://',dnsName))
+```
+And cleanup.
 
 
+```{r results='hide',echo=FALSE}
+Sys.sleep(120)
+```
+
+```{r results='hide'}
+# Stop and terminate the instances
+stop_instances(i[[1]])
+# terminating an instance will result in losing
+# any and all data!
+terminate_instances(i[[1]])
+# and cleanup our security group.
+Sys.sleep(120)
+delete_sgroup(g)
+delete_keypair(keypair_name)
+```
+
+
+# sessionInfo
+
+```{r}
+sessionInfo()
+```
