@@ -146,7 +146,7 @@ Now let’s delete the hard drive we created since we won’t need to use it any
 
 ```{r}
 # We're finished with this bucket, so let's delete it.
-delete_bucket(bucket_name)
+delete_bucket(bucket_name, region='us-east-2')
 ```
 
 *Always clean up after yourself during these experiments and you should not incur any charges.*

@@ -107,11 +107,11 @@ bucket_exists(bucket_name)
 ```
 ## [1] TRUE
 ## attr(,"x-amz-id-2")
-## [1] "IHJIn6MExzQWZf/Fr9nywusNXvlFPoo8uNYisB9Wf0Ha2lU5ONldvoW6xOMEiYghmUEYmXy6aZQ="
+## [1] "svUvtvyngRS8Bfy3+2KnzB8eu/crEVNkGKOGkn+LvAqSwyIBoyXrvgn3NoDW3TSjGqHQTu6DP1k="
 ## attr(,"x-amz-request-id")
-## [1] "049D683B4FB76C87"
+## [1] "13717609C43D8894"
 ## attr(,"date")
-## [1] "Wed, 26 Jul 2017 14:18:28 GMT"
+## [1] "Wed, 26 Jul 2017 14:25:56 GMT"
 ## attr(,"x-amz-bucket-region")
 ## [1] "us-east-2"
 ## attr(,"content-type")
@@ -131,21 +131,22 @@ bucket_list_df()
 ## 1                ExtremeComputeBio 2015-09-29T10:10:14.000Z
 ## 2  aws-logs-377200973048-us-east-1 2017-01-02T22:59:36.000Z
 ## 3  aws-logs-377200973048-us-west-2 2017-03-03T01:19:59.000Z
-## 4         bioc2017-test-amh0jcnhvd 2017-07-26T12:21:07.000Z
-## 5         bioc2017-test-fkn9b8mqxh 2017-07-26T14:18:25.000Z
-## 6         bioc2017-test-gbtd3xb9qu 2017-07-26T12:31:31.000Z
-## 7         bioc2017-test-h59vvn6h52 2017-07-26T14:08:47.000Z
-## 8         bioc2017-test-hz27fet2b6 2017-07-26T12:26:01.000Z
-## 9         bioc2017-test-r368y5kbph 2017-07-26T14:07:56.000Z
-## 10        bioc2017-test-rv8woh29qx 2017-07-26T14:11:39.000Z
-## 11        bioc2017-test-w6bc9xqvck 2017-07-26T12:22:39.000Z
-## 12        bioc2017-test-wezlxjojt9 2017-07-26T14:18:07.000Z
-## 13           giab.s3.amazonaws.com 2017-03-03T23:39:28.000Z
-## 14       gov.cancer.ccr.publicdata 2017-06-23T12:55:57.000Z
-## 15                            osf1 2017-05-25T22:40:18.000Z
-## 16              sdavis.nci.nih.gov 2015-06-12T19:22:35.000Z
-## 17             target-osteosarcoma 2017-05-31T18:50:46.000Z
-## 18             teamcgc.nci.nih.gov 2016-02-02T16:53:35.000Z
+## 4         bioc2017-test-1xqhabps6d 2017-07-26T14:25:54.000Z
+## 5         bioc2017-test-amh0jcnhvd 2017-07-26T12:21:07.000Z
+## 6         bioc2017-test-fkn9b8mqxh 2017-07-26T14:18:25.000Z
+## 7         bioc2017-test-gbtd3xb9qu 2017-07-26T12:31:31.000Z
+## 8         bioc2017-test-h59vvn6h52 2017-07-26T14:08:47.000Z
+## 9         bioc2017-test-hz27fet2b6 2017-07-26T12:26:01.000Z
+## 10        bioc2017-test-r368y5kbph 2017-07-26T14:07:56.000Z
+## 11        bioc2017-test-rv8woh29qx 2017-07-26T14:11:39.000Z
+## 12        bioc2017-test-w6bc9xqvck 2017-07-26T12:22:39.000Z
+## 13        bioc2017-test-wezlxjojt9 2017-07-26T14:18:07.000Z
+## 14           giab.s3.amazonaws.com 2017-03-03T23:39:28.000Z
+## 15       gov.cancer.ccr.publicdata 2017-06-23T12:55:57.000Z
+## 16                            osf1 2017-05-25T22:40:18.000Z
+## 17              sdavis.nci.nih.gov 2015-06-12T19:22:35.000Z
+## 18             target-osteosarcoma 2017-05-31T18:50:46.000Z
+## 19             teamcgc.nci.nih.gov 2016-02-02T16:53:35.000Z
 ```
 
 Now we can put files in our bucket using put_object() by specifying which bucket we want to use:
@@ -218,12 +219,14 @@ We can do a one-step approach if we like using the `s3read_using` function:
 m1 = s3read_using(read.csv,object='mtcars.csv',bucket=bucket_name)
 ```
 
-Looks like it works! Now let’s delete the hard drive we created since we won’t need to use it anymore.
+Looks like it works! We can also directly save and load to s3 using `s3save` and `s3saveRDS` and accompanying load functions.
+
+Now let’s delete the hard drive we created since we won’t need to use it anymore.
 
 
 ```r
 # We're finished with this bucket, so let's delete it.
-delete_bucket(bucket_name)
+delete_bucket(bucket_name, region='us-east-2')
 ```
 
 ```
@@ -233,15 +236,15 @@ delete_bucket(bucket_name)
 ```
 ## [1] FALSE
 ## attr(,"x-amz-request-id")
-## [1] "DBD941477CF81364"
+## [1] "615705D79813B74A"
 ## attr(,"x-amz-id-2")
-## [1] "udSwRkjrGTt33kBnjl5q0q7RGiuOWa1A46TfgFdkMaUTdW19IEPgzhRhswBOrfb5QSeagNg+3yE="
+## [1] "sKIFxaaB7KKm2X9N6eqtMBfdSB9wppYuD0P7tSMUIgdyMtXdV/lYwnZkH6YhYo8oUV3wdwXn5Mc="
 ## attr(,"content-type")
 ## [1] "application/xml"
 ## attr(,"transfer-encoding")
 ## [1] "chunked"
 ## attr(,"date")
-## [1] "Wed, 26 Jul 2017 14:18:28 GMT"
+## [1] "Wed, 26 Jul 2017 14:25:56 GMT"
 ## attr(,"server")
 ## [1] "AmazonS3"
 ```
@@ -284,7 +287,7 @@ create_keypair('bioc2017',path = 'bioc2017.pem')
 
 ```
 ## keyName:         bioc2017 
-## keyFingerprint:  e1:02:a5:2b:2b:2b:59:5d:90:39:b5:60:91:42:78:e0:ee:0e:2f:fe
+## keyFingerprint:  4d:6c:68:32:0d:1c:80:41:b0:92:30:fb:31:26:25:9d:1b:aa:31:35
 ```
 
 Next, we need to create a network configuration that will allow us to interact with the rstudio server that will be running on the AMI. This is messy, but follow along.
